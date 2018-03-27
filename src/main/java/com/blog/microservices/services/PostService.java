@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
 import java.util.stream.Collectors;
 
 @Service
@@ -26,22 +25,22 @@ public class PostService {
 
     public Mono<Post> getPostById(String id) {
         return postRepository.findById(id);
-}
+    }
 
     public Mono<Post> create(PostRequest postRequest) {
 
-        Post post = new Post.PostBuilder()
+        final Post.PostBuilder postBuilder = new Post.PostBuilder()
                 .title(postRequest.getTitle())
-                .content(postRequest.getContent())
-                .categories(postRequest.getCategories()
-                        .stream()
-                        .map(categoryIdRequest -> categoryService.getCategoryById(categoryIdRequest.getId()))
-                        .collect(Collectors.toList()))
-                .user(userService.getUserById(postRequest.getUser().getId()))
-                .build();
+                .content(postRequest.getContent());
 
-        return postRepository.save(post);
-
+        return categoryService.getAllCategoriesById(postRequest.getCategories().stream().map(postCategoryRequest -> postCategoryRequest.getId()).collect(Collectors.toList()))
+                .map(categories -> {
+                    postBuilder.categories(categories);
+                    return categories;
+                })
+                .flatMap( list -> userService.getUserById(postRequest.getUser().getId()) )
+                .map( user -> postBuilder.user(user).build() )
+                .flatMap(post -> postRepository.save(post));
     }
 
     public Mono<Post> update(String id, PostRequest postRequest) {
@@ -52,9 +51,9 @@ public class PostService {
                 .content(postRequest.getContent())
                 .categories(postRequest.getCategories()
                         .stream()
-                        .map(categoryIdRequest -> categoryService.getCategoryById(categoryIdRequest.getId()))
+                        .map(categoryIdRequest -> categoryService.getCategoryById(categoryIdRequest.getId()).block())
                         .collect(Collectors.toList()))
-                .user(userService.getUserById(postRequest.getUser().getId()))
+                .user(userService.getUserById(postRequest.getUser().getId()).block())
                 .build();
 
         return postRepository.save(post);

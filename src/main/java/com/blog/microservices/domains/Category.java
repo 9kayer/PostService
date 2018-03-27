@@ -28,4 +28,11 @@ public class Category {
 		return name;
 	}
 
+	@Override
+	public String toString() {
+		return "Category{" +
+				"id='" + id + '\'' +
+				", name='" + name + '\'' +
+				'}';
+	}
 }
