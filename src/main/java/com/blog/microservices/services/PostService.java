@@ -1,5 +1,7 @@
 package com.blog.microservices.services;
 
+import com.blog.microservices.commentStrategy.CommentHandler;
+import com.blog.microservices.commentStrategy.CommentStrategy;
 import com.blog.microservices.domains.Comment;
 import com.blog.microservices.domains.Post;
 import com.blog.microservices.dtos.comment.PostCommentRequest;
@@ -20,6 +22,8 @@ public class PostService {
     private CategoryService categoryService;
     @Autowired
     private UserService userService;
+    @Autowired
+    private CommentHandler commentHandler;
 
     public Flux<Post> getPosts() {
         return postRepository.findAll();
@@ -75,7 +79,9 @@ public class PostService {
                 .map(user -> new Comment(commentRequest.getTitle(),commentRequest.getContent(), user))
                 .flatMap(comment -> postRepository.findById(id)
                                         .map(post -> {
-                                            post.addComment(comment);
+                                            final CommentStrategy commentStrategy = commentHandler.getStrategy(comment.getUser().getRole());
+                                            commentStrategy.addComment(post,comment);
+
                                             return post;
                                         })
                 ).flatMap(post -> postRepository.save(post));
