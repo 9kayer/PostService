@@ -1,17 +1,23 @@
 package com.blog.microservices.dtos.comment;
 
-import com.blog.microservices.domains.User;
 import com.blog.microservices.dtos.Request;
+import com.blog.microservices.dtos.user.PostUserRequest;
+
+import javax.validation.constraints.NotNull;
 
 public class PostCommentRequest extends Request {
+
+    @NotNull
     private String title;
+    @NotNull
     private String content;
-    private User user;
+    @NotNull
+    private PostUserRequest user;
 
     public PostCommentRequest() {
     }
 
-    public PostCommentRequest(String title, String content, User user) {
+    public PostCommentRequest(String title, String content, PostUserRequest user) {
 
         this.title = title;
         this.content = content;
@@ -26,7 +32,7 @@ public class PostCommentRequest extends Request {
         return content;
     }
 
-    public User getUser() {
+    public PostUserRequest getUser() {
         return user;
     }
 }
