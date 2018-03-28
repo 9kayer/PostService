@@ -1,6 +1,8 @@
 package com.blog.microservices.services;
 
+import com.blog.microservices.domains.Comment;
 import com.blog.microservices.domains.Post;
+import com.blog.microservices.dtos.comment.PostCommentRequest;
 import com.blog.microservices.dtos.post.PostRequest;
 import com.blog.microservices.repositories.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,21 +47,37 @@ public class PostService {
 
     public Mono<Post> update(String id, PostRequest postRequest) {
 
-        Post post = new Post.PostBuilder()
-                .id(postRequest.getId())
+        final Post.PostBuilder postBuilder = new Post.PostBuilder()
                 .title(postRequest.getTitle())
-                .content(postRequest.getContent())
-                .categories(postRequest.getCategories()
-                        .stream()
-                        .map(categoryIdRequest -> categoryService.getCategoryById(categoryIdRequest.getId()).block())
-                        .collect(Collectors.toList()))
-                .user(userService.getUserById(postRequest.getUser().getId()).block())
-                .build();
+                .content(postRequest.getContent());
 
-        return postRepository.save(post);
+        return postRepository.findById(id)
+                .flatMap(oldPost -> {
+                    postBuilder.comments(oldPost.getComments());
+                    return categoryService.getAllCategoriesById(postRequest.getCategories().stream().map(postCategoryRequest -> postCategoryRequest.getId()).collect(Collectors.toList()))
+                            .map(categories -> {
+                                postBuilder.categories(categories);
+                                return categories;
+                            })
+                            .flatMap( list -> userService.getUserById(postRequest.getUser().getId()) )
+                            .map( user -> postBuilder.user(user).build() )
+                            .flatMap(post -> postRepository.save(post));
+                });
     }
 
     public Mono<Void> delete(String id) {
         return postRepository.deleteById(id);
+    }
+
+    public Mono<Post> addComment(String id, PostCommentRequest commentRequest) {
+
+        return userService.getUserById(commentRequest.getUser().getId())
+                .map(user -> new Comment(commentRequest.getTitle(),commentRequest.getContent(), user))
+                .flatMap(comment -> postRepository.findById(id)
+                                        .map(post -> {
+                                            post.addComment(comment);
+                                            return post;
+                                        })
+                ).flatMap(post -> postRepository.save(post));
     }
 }

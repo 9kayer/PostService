@@ -1,5 +1,6 @@
 package com.blog.microservices.controllers;
 
+import com.blog.microservices.dtos.comment.PostCommentRequest;
 import com.blog.microservices.dtos.post.PostParser;
 import com.blog.microservices.dtos.post.PostRequest;
 import com.blog.microservices.dtos.post.PostResponse;
@@ -52,5 +53,10 @@ public class PostController {
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity> delete(@PathVariable String id) {
         return postService.delete(id).map(item -> ResponseEntity.ok(item));
+    }
+
+    @PutMapping("/{id}/comment")
+    public Mono<ResponseEntity<PostResponse>> addComment(@PathVariable String id, @RequestBody PostCommentRequest commentRequest){
+        return postService.addComment(id, commentRequest).map(post -> ResponseEntity.ok(postParser.toDTO(post)));
     }
 }
